@@ -1,0 +1,16 @@
+/* 11tray */
+
+.tray11-arrow {
+    padding: 0 2px;
+    border-radius: 4px;
+}
+
+.tray11-arrow:hover {
+    background-color: rgba(127, 127, 127, 0.18);
+}
+
+/* The drawer that holds hidden icons, revealed under the arrow. */
+.tray11-drawer {
+    padding: 4px;
+    spacing: 4px;
+}

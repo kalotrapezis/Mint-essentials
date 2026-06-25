@@ -5,30 +5,20 @@ its own self-contained folder and can be installed independently.
 
 ## Applets
 
-### [grun](Mint-runner/) — keyboard-driven launcher
+### [grun](grun@kalotrapezis/) — keyboard-driven launcher
 
 A panel launcher for apps, calculator, web/AI search, files, clipboard and
 power, with layout-independent fuzzy matching. Its UI is a Cinnamon popup, so
 there is no separate window and no open-time flicker.
 
-![grun home dashboard](Mint-runner/grun@kalotrapezis/screenshot.png)
+![grun home dashboard](grun@kalotrapezis/screenshot.png)
 
-See the [grun README](Mint-runner/README.md).
-
-### [11tray](11tray/) — Windows 11-style tray overflow
-
-A system tray that tucks the app status icons you don't want behind a small
-arrow, in a drawer. Hide/show is per-app and remembered, so the tray stays tidy
-as you install more apps; system icons (update manager, Bluetooth…) are grouped
-together automatically.
-
-![11tray](11tray/Screenshots/tray.png)
-
-See the [11tray README](11tray/README.md).
+See the [grun README](grun@kalotrapezis/README.md) and
+[changelog](grun@kalotrapezis/CHANGELOG.md).
 
 ## Install
 
-Each applet ships an `install.sh` in its folder:
+Each applet ships an `install.sh`:
 
 ```bash
 ./install.sh          # copy into ~/.local/share/cinnamon/applets/
@@ -45,4 +35,4 @@ doesn't appear, reload Cinnamon (Alt+F2 → `r` → Enter).
 
 ## License
 
-[GNU AGPL-3.0](Mint-runner/LICENSE).
+[GNU AGPL-3.0](LICENSE).

@@ -1,0 +1,28 @@
+{
+    "head-icons": {
+        "type": "header",
+        "description": "Icons"
+    },
+    "icon-size": {
+        "type": "spinbutton",
+        "default": 16,
+        "min": 8,
+        "max": 48,
+        "step": 1,
+        "units": "px",
+        "description": "Tray icon size",
+        "tooltip": "Size of the tray icons, in pixels. Lower this to match the panel's system icons."
+    },
+    "head-hiding": {
+        "type": "header",
+        "description": "Hiding"
+    },
+    "hide-note": {
+        "type": "label",
+        "description": "To hide or show icons: right-click the panel and turn on Panel edit mode (under Troubleshoot) — this adds spacing between applets so you can right-click 11tray and use the per-icon switches. Turn edit mode off when done. You can also Ctrl+click any icon at any time. Hidden icons live in the drawer behind the arrow."
+    },
+    "hidden-icons": {
+        "type": "generic",
+        "default": []
+    }
+}

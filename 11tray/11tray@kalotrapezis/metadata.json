@@ -1,0 +1,9 @@
+{
+    "uuid": "11tray@kalotrapezis",
+    "name": "11tray",
+    "description": "A Windows 11-style system tray: app status icons you don't want cluttering the panel tuck away behind a small arrow, revealed in a drawer. Hide/show is per-app and remembered. Replaces the stock XApp status applet.",
+    "version": "0.1.0",
+    "max-instances": "1",
+    "cinnamon-version": ["6.0", "6.2", "6.4", "6.6"],
+    "website": "https://github.com/kalotrapezis/Mint-essentials"
+}
