@@ -18,11 +18,11 @@ See the [grun README](Mint-runner/README.md).
 ### [11tray](11tray/) — Windows 11-style tray overflow
 
 A system tray that tucks the app status icons you don't want behind a small
-arrow, in a drawer. Hide/show is per-app and remembered, so the tray stays tidy
-as you install more apps; system icons (update manager, Bluetooth…) are grouped
-together automatically.
+arrow, in a drawer. Everything starts hidden and you pick what shows; the choice
+is per-app and remembered, so the tray stays tidy as you install more apps.
+System icons (update manager, Bluetooth…) are grouped together automatically.
 
-![11tray](11tray/Screenshots/tray.png)
+![11tray with the drawer open](11tray/Screenshots/tray-open.png)
 
 See the [11tray README](11tray/README.md).
 

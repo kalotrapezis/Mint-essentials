@@ -283,7 +283,10 @@ class Tray11Applet extends Applet.Applet {
 
         // Persisted set of hidden app keys.
         this.settings = new Settings.AppletSettings(this, UUID, instance_id);
-        this._hidden = new Set(this.settings.getValue("hidden-icons") || []);
+        // Icons are hidden (in the drawer) BY DEFAULT; this is the allowlist of
+        // the ones the user has chosen to show on the panel. Empty on first run,
+        // so a fresh install tucks everything under the arrow.
+        this._shown = new Set(this.settings.getValue("shown-icons") || []);
         // Icon size comes from the settings dialog; refresh icons when it changes.
         this.settings.bind("icon-size", "iconSizePref", () => this.refreshIcons());
 
@@ -329,6 +332,10 @@ class Tray11Applet extends Applet.Applet {
         this.signalManager.connect(Main.systrayManager, "changed", this.onRolesChanged, this);
         this.signalManager.connect(this.panel, "icon-size-changed", this.refreshIcons, this);
         this.signalManager.connect(global.settings, 'changed::panel-edit-mode', this.onEditModeChanged, this);
+
+        // Re-pick the dark/light arrow asset when the GTK theme changes.
+        this._ifaceSettings = new Gio.Settings({ schema_id: "org.cinnamon.desktop.interface" });
+        this.signalManager.connect(this._ifaceSettings, "changed::gtk-theme", this._onThemeChanged, this);
 
         this._updateArrow();
     }
@@ -377,10 +384,15 @@ class Tray11Applet extends Applet.Applet {
         this._updateArrow();
     }
 
+    // True unless the user has explicitly chosen to show this icon.
+    isHidden(icon) {
+        return !this._shown.has(icon.key());
+    }
+
     // Put an icon where it belongs: drawer (hidden), system strip, or app strip.
     place(icon) {
         let target;
-        if (this._hidden.has(icon.key())) target = this.drawerBox;
+        if (this.isHidden(icon)) target = this.drawerBox;
         else if (this.isSystem(icon)) target = this.sysStrip;
         else target = this.appStrip;
 
@@ -415,14 +427,14 @@ class Tray11Applet extends Applet.Applet {
     // Move an icon to the drawer (hidden) or strip, and remember the choice.
     setHidden(icon, hidden) {
         let key = icon.key();
-        if (hidden) this._hidden.add(key);
-        else this._hidden.delete(key);
-        this.settings.setValue("hidden-icons", Array.from(this._hidden));
+        if (hidden) this._shown.delete(key);
+        else this._shown.add(key);
+        this.settings.setValue("shown-icons", Array.from(this._shown));
         this.place(icon);
         this._updateArrow();
     }
 
-    toggleHidden(icon) { this.setHidden(icon, !this._hidden.has(icon.key())); }
+    toggleHidden(icon) { this.setHidden(icon, !this.isHidden(icon)); }
 
     // A readable label for an icon (first line of its tooltip, tags stripped).
     iconLabel(icon) {
@@ -438,7 +450,7 @@ class Tray11Applet extends Applet.Applet {
     _rebuildContextMenu() {
         this._ctxSection.removeAll();
         this._ctxSection.addMenuItem(
-            new PopupMenu.PopupMenuItem("Tuck away into the drawer:", { reactive: false }));
+            new PopupMenu.PopupMenuItem("In the drawer (off = show on panel):", { reactive: false }));
 
         let icons = Object.keys(this.icons).map(k => this.icons[k]);
         if (!icons.length) {
@@ -448,7 +460,7 @@ class Tray11Applet extends Applet.Applet {
             icons.sort((a, b) => this.iconLabel(a).localeCompare(this.iconLabel(b)));
             for (let icon of icons) {
                 let sw = new PopupMenu.PopupSwitchMenuItem(
-                    this.iconLabel(icon), this._hidden.has(icon.key()));
+                    this.iconLabel(icon), this.isHidden(icon));
                 sw.connect('toggled', (it, val) => this.setHidden(icon, val));
                 this._ctxSection.addMenuItem(sw);
             }
@@ -471,15 +483,20 @@ class Tray11Applet extends Applet.Applet {
         this._updateArrowIcon(this.menu.isOpen);
     }
 
+    _onThemeChanged() {
+        this._dark = /dark/i.test(gtkThemeName());
+        this._updateArrowIcon(this.menu.isOpen);
+    }
+
     _updateArrowIcon(open) {
-        // Closed = the classic up chevron; open = down (collapse hint).
-        let base = open ? "pointer-Down.svg" : "pointer-up.svg";
+        // Closed = down chevron (expand the drawer below); open = up (collapse).
+        let base = open ? "pointer-up.svg" : "pointer-Down.svg";
         let pfx = this._dark ? "Dark-" : "Light-";
         let p = GLib.build_filenamev([this.metadata.path, "Assets", pfx + base]);
         if (GLib.file_test(p, GLib.FileTest.EXISTS)) {
             this.arrowIcon.gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(p) });
         } else {
-            this.arrowIcon.icon_name = open ? "pan-down-symbolic" : "pan-up-symbolic";
+            this.arrowIcon.icon_name = open ? "pan-up-symbolic" : "pan-down-symbolic";
         }
     }
 

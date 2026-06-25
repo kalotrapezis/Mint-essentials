@@ -11,10 +11,13 @@ Keep the system tray from getting cluttered as apps accumulate over time —
 **without** touching the icons you actually want visible, and without a tedious
 settings page of checkboxes.
 
-- Default for every icon is **shown**. Nothing is auto-hidden, ever.
-- You decide what to hide, by dragging it behind the arrow.
-- The arrow only appears when at least one icon is hidden (like Windows 11).
-- The hide/show choice is **remembered per app** across reboots.
+- Default for every icon is **hidden** (in the drawer). On a fresh install the
+  whole tray is tucked behind the arrow; you bring out only what you want.
+  (Earlier this was the reverse — default-shown, opt-in hide — changed by request.)
+- You decide what to **show**, via the right-click switches or Ctrl+click.
+- The arrow appears whenever at least one icon is hidden — i.e. almost always,
+  unless you bring everything out onto the panel.
+- The show/hide choice is **remembered per app** across reboots.
 
 ## Scope (and non-goals)
 

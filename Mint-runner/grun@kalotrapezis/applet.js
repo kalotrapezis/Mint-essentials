@@ -440,8 +440,13 @@ MyApplet.prototype = {
         Applet.IconApplet.prototype._init.call(this, orientation, panel_height, instance_id);
 
         this.metadata = metadata;
-        this.set_applet_icon_path(metadata.path + "/icon.png");
         this.set_applet_tooltip("grun — click or press the shortcut to search");
+
+        // Follow the GTK theme live: the panel icon (and popup colours) switch
+        // between the dark and light variants when the theme changes.
+        this._ifaceSettings = new Gio.Settings({ schema_id: "org.cinnamon.desktop.interface" });
+        this._themeWatchId = this._ifaceSettings.connect("changed::gtk-theme",
+            Lang.bind(this, this._onThemeChanged));
 
         this.aSettings = new Settings.AppletSettings(this, metadata.uuid, instance_id);
         this.aSettings.bind("max-results", "maxResults");
@@ -500,6 +505,19 @@ MyApplet.prototype = {
         } else {
             this._bg = "#edeff3"; this._cardBg = "#e2e5eb"; this._cardHover = "#d6dae2";
         }
+        this._applyAppletIcon();
+    },
+    // Pick the panel icon variant that matches the current theme.
+    _applyAppletIcon: function () {
+        let variant = this._dark ? "icon-dark.png" : "icon-light.png";
+        let p = GLib.build_filenamev([this.metadata.path, variant]);
+        if (!GLib.file_test(p, GLib.FileTest.EXISTS))
+            p = GLib.build_filenamev([this.metadata.path, "icon.png"]);
+        this.set_applet_icon_path(p);
+    },
+    // React to a live GTK theme switch (light <-> dark).
+    _onThemeChanged: function () {
+        this._refreshTheme();
     },
     _accentRGBA: function (a) {
         let c = this._accentRgb;
@@ -1530,6 +1548,10 @@ MyApplet.prototype = {
         if (this._clipTimer) { GLib.source_remove(this._clipTimer); this._clipTimer = 0; }
         this._flushHistory();
         if (this.aSettings) this.aSettings.finalize();
+        if (this._ifaceSettings && this._themeWatchId) {
+            this._ifaceSettings.disconnect(this._themeWatchId);
+            this._themeWatchId = 0;
+        }
     }
 };
 

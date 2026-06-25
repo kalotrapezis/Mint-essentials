@@ -19,9 +19,9 @@
     },
     "hide-note": {
         "type": "label",
-        "description": "To hide or show icons: right-click the panel and turn on Panel edit mode (under Troubleshoot) — this adds spacing between applets so you can right-click 11tray and use the per-icon switches. Turn edit mode off when done. You can also Ctrl+click any icon at any time. Hidden icons live in the drawer behind the arrow."
+        "description": "By default all icons start hidden in the drawer behind the arrow. To choose which ones show on the panel: click the arrow to open the drawer, then right-click 11tray and switch icons off (off = shown on the panel). If the arrow is gone because nothing is hidden, turn on Panel edit mode (right-click the panel → Troubleshoot) to get a spot to right-click. You can also Ctrl+click any icon to move it in or out."
     },
-    "hidden-icons": {
+    "shown-icons": {
         "type": "generic",
         "default": []
     }

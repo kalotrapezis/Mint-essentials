@@ -2,20 +2,21 @@
 
 A system tray that hosts your app status icons and lets you tuck the ones you
 don't want to see behind a small arrow — a drawer, like Windows 11. The choice
-is per-app and remembered, so the tray stays tidy as you install more apps.
+is per-app and remembered, so the tray stays tidy as you install more apps. On a
+fresh install every icon starts tucked away, and you pick which ones to show.
 
-![the tray](Screenshots/tray.png)
+![11tray with the drawer open](Screenshots/tray-open.png)
 
 11tray **replaces** the stock XApp status applet and renders the icons itself, so
 it can split them into a visible strip and a hidden drawer.
 
 ## What it does
 
-- **Hide what you don't need.** Send an app's icon into a drawer; the panel stays
-  clean. The drawer opens from a small arrow that only appears when something is
-  hidden.
-- **Per-app, remembered.** Hide/show is keyed to the app, so it survives reloads
-  and reboots — and new apps you install start out visible (never auto-hidden).
+- **Hidden by default.** On a fresh install every icon sits in the drawer behind
+  the arrow; you bring out only the ones you want on the panel. New apps you
+  install also start hidden, so the panel never clutters up on its own.
+- **Per-app, remembered.** Your show/hide choices are keyed to the app, so they
+  survive reloads and reboots.
 - **System icons grouped.** Update manager, Bluetooth, system reports and the
   like are detected and kept together, next to the panel's other system
   indicators. Your app icons sit on the other side.
@@ -25,23 +26,29 @@ it can split them into a visible strip and a hidden drawer.
 
 ## The drawer
 
-Collapsed, with a couple of icons hidden — note the arrow at the end:
+Right after install everything is tucked away and the arrow opens the drawer —
+here with a couple of icons already brought out onto the panel:
 
-![drawer collapsed](Screenshots/drawer-collapsed.png)
+![default state, drawer open](Screenshots/Default.png)
 
-Click the arrow and the hidden icons drop down:
+Collapsed, the panel shows just what you chose, plus the arrow:
 
-![drawer open](Screenshots/drawer-open.png)
+![drawer collapsed](Screenshots/Light-closed.png)
 
-## Hiding and showing icons
+It's theme-aware — the arrow and icons follow your light/dark theme:
 
-Two ways:
+![dark theme, drawer open](Screenshots/tray-open.png)
 
-- **Ctrl+click** any tray icon to tuck it into the drawer (or pull it back out).
-- **Right-click the applet** for a per-icon switch list. Because the icons fill
-  the applet, the easy way to get a bare spot to right-click is to turn on
-  **Panel edit mode** (right-click the panel → Troubleshoot → Panel edit mode),
-  which spaces the applets out. Turn it off when you're done.
+## Choosing what shows
+
+Everything starts in the drawer. To put an icon on the panel:
+
+- **Right-click the applet** for a per-icon switch list (switch *off* = shown on
+  the panel). While the arrow is present you have a spot to right-click; if you've
+  brought everything out and the arrow is gone, turn on **Panel edit mode**
+  (right-click the panel → Troubleshoot → Panel edit mode) to get one, then turn
+  it off when done.
+- **Ctrl+click** any icon to move it in or out of the drawer directly.
 
 ![hide/show menu](Screenshots/hide-menu.png)
 
