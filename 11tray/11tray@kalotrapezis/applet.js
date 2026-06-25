@@ -140,17 +140,32 @@ class TrayIcon {
     }
 
     setIconName(iconName) {
-        if (!iconName) { this.iconName = null; this.icon_holder.hide(); return; }
-
-        let type = iconName.match(/symbolic/) ? St.IconType.SYMBOLIC : St.IconType.FULLCOLOR;
-        this.iconName = iconName;
+        this.iconName = iconName || null;
         // Uniform size so colourful app icons match the panel's other icons.
         this.iconSize = this.applet.trayIconSize();
         this.proxy.icon_size = this.iconSize;
 
-        if (iconName.includes("/") && type != St.IconType.SYMBOLIC) {
+        let name = (iconName || "").trim();
+
+        // No usable icon — some apps (e.g. Claude after an update) report an
+        // empty name or the literal "image-missing". Show a neutral generic
+        // icon instead of a broken-image glyph or an empty box.
+        if (!name || name === "image-missing") {
+            this._showFallbackIcon();
+            return;
+        }
+
+        let type = name.match(/symbolic/) ? St.IconType.SYMBOLIC : St.IconType.FULLCOLOR;
+
+        // A file-path icon (pixmap in /dev/shm, etc.): load it, but fall back if
+        // the file is gone (stale path left over from an app restart/update).
+        if (name.includes("/") && type != St.IconType.SYMBOLIC) {
+            if (!GLib.file_test(name, GLib.FileTest.EXISTS)) {
+                this._showFallbackIcon();
+                return;
+            }
             this.icon_loader_handle = St.TextureCache.get_default().load_image_from_file_async(
-                iconName,
+                name,
                 this.actor.vertical ? this.iconSize : -1,
                 this.iconSize,
                 (...args) => this._onImageLoaded(...args)
@@ -158,15 +173,27 @@ class TrayIcon {
             return;
         }
 
-        let icon = new St.Icon({ "icon-type": type, "icon-size": this.iconSize, "icon-name": iconName });
+        this._setIconChild(new St.Icon({ "icon-type": type, "icon-size": this.iconSize, "icon-name": name }));
+    }
+
+    _setIconChild(actor) {
+        this.icon_holder.child = actor;
         this.icon_holder.show();
-        this.icon_holder.child = icon;
+    }
+
+    // A clean stand-in when an app gives us no usable icon.
+    _showFallbackIcon() {
+        this._setIconChild(new St.Icon({
+            icon_type: St.IconType.FULLCOLOR,
+            icon_size: this.iconSize,
+            icon_name: "application-x-executable"
+        }));
     }
 
     _onImageLoaded(cache, handle, actor, data = null) {
         if (handle !== this.icon_loader_handle) return;
-        this.icon_holder.child = actor;
-        this.icon_holder.show();
+        if (!actor) { this._showFallbackIcon(); return; }
+        this._setIconChild(actor);
     }
 
     setTooltipText(tooltipText) {
