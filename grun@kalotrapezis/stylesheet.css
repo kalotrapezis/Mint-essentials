@@ -1,0 +1,131 @@
+/* Size (root width, scroll height, card size) is set in code so it can adapt
+   to normal vs fullscreen. Colours are intentionally theme-neutral greys; the
+   accent (letter badge, selection, glow, toggles) is applied inline from the
+   active GTK theme's @theme_selected_bg_color. */
+
+.grun-root {
+    padding: 10px;
+    spacing: 6px;
+}
+
+/* One bordered bar around the entry + icon buttons (grun-style). */
+.grun-searchbar {
+    border: 1px solid rgba(127, 127, 127, 0.35);
+    border-radius: 12px;
+    padding: 2px 6px;
+    margin-bottom: 8px;
+    spacing: 4px;
+}
+
+.grun-search {
+    font-size: 1.2em;
+    padding: 8px 8px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+.grun-list {
+    spacing: 2px;
+}
+
+.grun-row {
+    padding: 6px 8px;
+    border-radius: 6px;
+    spacing: 10px;
+}
+
+.grun-row:hover {
+    background-color: rgba(127, 127, 127, 0.15);
+}
+
+.grun-row-text { spacing: 0px; }
+.grun-title { font-weight: bold; }
+.grun-subtitle { font-size: 0.85em; opacity: 0.7; }
+
+.grun-tag {
+    color: #ffffff;
+    font-size: 0.72em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: rgba(127, 127, 127, 0.4);
+}
+
+.grun-chips { spacing: 6px; }
+
+.grun-chip {
+    font-size: 0.8em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: rgba(127, 127, 127, 0.18);
+}
+.grun-chip:hover { background-color: rgba(127, 127, 127, 0.35); }
+
+.grun-section {
+    font-size: 0.78em;
+    font-weight: bold;
+    opacity: 0.6;
+}
+
+.grun-secticon { padding-right: 4px; }
+.grun-expand { spacing: 4px; }
+
+.grun-empty { padding: 18px; opacity: 0.6; }
+
+.grun-iconbtn { padding: 6px; border-radius: 6px; }
+.grun-iconbtn:hover { background-color: rgba(127, 127, 127, 0.2); }
+
+/* Home dashboard cards (grun-style) */
+.grun-secthead {
+    spacing: 6px;
+    padding: 6px 6px 2px 6px;
+}
+.grun-cardgrid { spacing: 8px; padding: 2px 2px 8px 2px; }
+.grun-cardrow { spacing: 8px; }
+
+.grun-bigcard {
+    padding: 12px;
+    spacing: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(127, 127, 127, 0.22);
+}
+
+.grun-bigcard-left { width: 88px; spacing: 6px; }
+.grun-bigcard-main { spacing: 6px; }
+
+.grun-card-letter {
+    border-radius: 8px;
+    padding: 7px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.grun-side {
+    background-color: rgba(127, 127, 127, 0.14);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 0.78em;
+}
+.grun-side:hover { background-color: rgba(127, 127, 127, 0.3); }
+
+.grun-card-title { font-weight: bold; text-align: center; }
+.grun-clip { font-size: 0.92em; text-align: left; }
+.grun-sub { font-size: 0.8em; opacity: 0.6; }
+
+.grun-tag-system { background-color: #d64541; }
+.grun-tag-appimage { background-color: #2f80ed; }
+.grun-tag-flatpak { background-color: #27ae60; }
+.grun-tag-snap { background-color: #e67e22; }
+
+/* Settings page */
+.grun-setrow { spacing: 6px; padding: 4px 8px; }
+
+.grun-done {
+    margin: 10px 8px 4px 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background-color: rgba(127, 127, 127, 0.2);
+    font-weight: bold;
+}
+.grun-done:hover { background-color: rgba(127, 127, 127, 0.35); }
+

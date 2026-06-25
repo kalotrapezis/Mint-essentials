@@ -1,0 +1,11 @@
+# Build artifacts
+*.zip
+
+# Root Assets holds design sources only; its SVGs/PNG are duplicates of each
+# applet's own runtime Assets/. Track just the editable master art.
+/Assets/*
+!/Assets/AppIcon.psd
+
+# Editor / OS cruft
+*~
+.DS_Store

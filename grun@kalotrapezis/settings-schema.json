@@ -1,0 +1,24 @@
+{
+    "head-open": {
+        "type": "header",
+        "description": "Opening grun"
+    },
+    "hotkey": {
+        "type": "keybinding",
+        "default": "<Control><Alt>a",
+        "description": "Global shortcut to open grun"
+    },
+    "max-results": {
+        "type": "spinbutton",
+        "default": 10,
+        "min": 4,
+        "max": 30,
+        "step": 1,
+        "units": "rows",
+        "description": "Maximum search results to show"
+    },
+    "note": {
+        "type": "label",
+        "description": "Functions, web/AI order, home dashboard and 'search descriptions' are configured from the ⚙ button inside grun (stored in ~/.config/grun/config, shared with the standalone app)."
+    }
+}
