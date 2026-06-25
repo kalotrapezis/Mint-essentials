@@ -329,10 +329,12 @@ class TrayIcon {
         this._tooltip.hide();
         this._tooltip.preventShow = true;
 
-        // The drawer is non-modal, so we DON'T close it on click — it stays open
-        // until you click outside. App menus from drawer icons work because there
-        // is no popup grab to block them.
+        // Compute the position while the icon is still allocated. Left-click keeps
+        // the drawer open; only right-click closes it (below) so the app's own
+        // menu can take the pointer grab.
         this._pressXYO = this.getEventPositionInfo(actor);
+        let inDrawer = (this.applet.menu.isOpen &&
+                        this.actor.get_parent() === this.applet.drawerBox);
 
         // Exception icons (e.g. Claude): the app's right-click menu works via
         // forwarding, but it has no left-click action — so synthesise one
@@ -345,6 +347,12 @@ class TrayIcon {
         if (event.get_button() == Clutter.BUTTON_SECONDARY &&
             event.get_state() & Clutter.ModifierType.CONTROL_MASK) {
             return Clutter.EVENT_PROPAGATE;
+        }
+
+        // Right-click inside the drawer: close it so the app's menu can grab the
+        // pointer and actually appear (a modal popup would otherwise block it).
+        if (event.get_button() == Clutter.BUTTON_SECONDARY && inDrawer) {
+            this.applet.menu.close();
         }
 
         let [x, y, o] = this._pressXYO;
@@ -436,14 +444,17 @@ class Tray11Applet extends Applet.Applet {
         this.arrowBtn.connect('clicked', () => this.menu.toggle());
         this.actor.add_actor(this.arrowBtn);
 
-        // The drawer: an applet popup that we deliberately DON'T register with a
-        // PopupMenuManager, so it carries no modal input grab. That keeps it open
-        // while you click icons inside it and lets those icons' apps pop their
-        // own menus. We dismiss it ourselves on a click outside (below).
+        // The drawer is a normal modal applet popup — the modal grab is what makes
+        // it clickable on top of app windows (without it, clicks fall through to
+        // the window underneath). It stays open while you click icons inside it
+        // (the grab only dismisses on clicks *outside*); right-clicking an icon
+        // closes it on purpose so the app's own menu can take the pointer grab.
+        this.menuManager = new PopupMenu.PopupMenuManager(this);
         this.menu = new Applet.AppletPopupMenu(this, orientation);
+        this.menuManager.addMenu(this.menu);
         this.drawerBox = new St.BoxLayout({ style_class: "tray11-drawer", vertical: false });
         this.menu.box.add_actor(this.drawerBox);
-        this.menu.connect('open-state-changed', (m, open) => this._onDrawerOpenState(open));
+        this.menu.connect('open-state-changed', (m, open) => this._updateArrowIcon(open));
 
         // Right-click context menu: a live list of icons with hide/show toggles.
         this._ctxSection = new PopupMenu.PopupMenuSection();
@@ -687,38 +698,6 @@ class Tray11Applet extends Applet.Applet {
         this._updateArrowIcon(this.menu.isOpen);
     }
 
-    // Drawer opened/closed. Because it has no modal grab, we add/remove our own
-    // non-grabbing "click outside to dismiss" watcher.
-    _onDrawerOpenState(open) {
-        this._updateArrowIcon(open);
-        if (open) {
-            if (!this._outsideId)
-                this._outsideId = global.stage.connect('captured-event',
-                    (s, ev) => this._onCapturedEvent(ev));
-        } else if (this._outsideId) {
-            global.stage.disconnect(this._outsideId);
-            this._outsideId = 0;
-        }
-    }
-
-    _onCapturedEvent(ev) {
-        if (ev.type() !== Clutter.EventType.BUTTON_PRESS) return Clutter.EVENT_PROPAGATE;
-        let [x, y] = ev.get_coords();
-        // Keep the drawer open for clicks on it (its icons) or on the arrow.
-        if (!this._pointInActor(this.menu.actor, x, y) &&
-            !this._pointInActor(this.arrowBtn, x, y)) {
-            this.menu.close();
-        }
-        return Clutter.EVENT_PROPAGATE;
-    }
-
-    _pointInActor(actor, x, y) {
-        if (!actor || !actor.visible) return false;
-        let [ax, ay] = actor.get_transformed_position();
-        let [aw, ah] = actor.get_transformed_size();
-        return x >= ax && x < ax + aw && y >= ay && y < ay + ah;
-    }
-
     _onThemeChanged() {
         this._dark = /dark/i.test(gtkThemeName());
         this._updateArrowIcon(this.menu.isOpen);
@@ -761,7 +740,6 @@ class Tray11Applet extends Applet.Applet {
 
     on_applet_removed_from_panel() {
         this.signalManager.disconnectAllSignals();
-        if (this._outsideId) { global.stage.disconnect(this._outsideId); this._outsideId = 0; }
         for (let key in this.icons) { this.icons[key].destroy(); delete this.icons[key]; }
         this.monitor = null;
         if (this.settings) this.settings.finalize();
