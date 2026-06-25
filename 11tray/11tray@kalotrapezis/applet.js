@@ -45,20 +45,79 @@ function gtkThemeName() {
     catch (e) { return ""; }
 }
 
+// Per-app exceptions for misbehaving tray icons. Matched against the icon's
+// declared name (proxy.name). `base` names a themed icon pair in the applet's
+// exceptions/ folder (Dark-<base>.png / Light-<base>.png) used instead of the
+// app's own (broken) icon. `collapse` shows only one icon for the match, even
+// if the app registers several.
+//
+// Claude's Linux desktop port (after a 2026 update) reports its tray icon as
+// "image-missing" with dead menus and sometimes registers twice — so we draw
+// our own Claude logo and keep just one.
+// Per-app exceptions for misbehaving tray icons, loaded from standalone
+// `*.exeption` files in the applet's exceptions/ folder — one JSON file per app,
+// so they can be added/removed without touching this code. Each file:
+//   { "match": "claude", "base": "claude", "collapse": true }
+//   match    – substring tested against the icon's declared name (proxy.name)
+//   base     – name of the themed override icon pair Dark-<base>.png / Light-<base>.png
+//   collapse – show only one icon for this match, even if the app registers several
+let EXCEPTIONS = [];
+
+function readText(path) {
+    try {
+        let [ok, bytes] = GLib.file_get_contents(path);
+        if (!ok) return null;
+        return (typeof bytes === "string") ? bytes : new TextDecoder().decode(bytes);
+    } catch (e) { return null; }
+}
+
+function loadExceptions(dir) {
+    EXCEPTIONS = [];
+    let iter;
+    try {
+        iter = Gio.File.new_for_path(dir).enumerate_children(
+            "standard::name", Gio.FileQueryInfoFlags.NONE, null);
+    } catch (e) { return; }
+    let info;
+    while ((info = iter.next_file(null)) !== null) {
+        let name = info.get_name();
+        if (!/\.exe?ption$/i.test(name)) continue;   // .exeption or .exception
+        let txt = readText(GLib.build_filenamev([dir, name]));
+        if (!txt) continue;
+        try {
+            let obj = JSON.parse(txt);
+            if (obj && obj.match) EXCEPTIONS.push(obj);
+        } catch (e) {
+            global.logError("11tray: bad exception file " + name + ": " + e);
+        }
+    }
+    iter.close(null);
+}
+
+function exceptionFor(proxy) {
+    let name = (proxy.name || "").toLowerCase();
+    if (!name) return null;
+    return EXCEPTIONS.find(e => name.indexOf((e.match || "").toLowerCase()) !== -1) || null;
+}
+
 // The leading token of a themed icon name, used as a stable app id.
-// e.g. "blueman-active-symbolic" -> "blueman",
-//      "mintupdate-updates-available-symbolic" -> "mintupdate".
+// e.g. "blueman-active-symbolic" -> "blueman".
 function iconBase(iconName) {
     let s = iconName.split("/").pop().replace(/\.(png|svg|xpm)$/i, "");
     return s.split("-")[0].toLowerCase();
 }
 
 // A stable, app-level identity for a status icon — used to remember the
-// hide/show choice across restarts. NOTE (P3 finding): proxy.get_name() returns
-// the D-Bus sender (":1.66"), shared by all icons from one process and unstable
-// across restarts, so it's useless here. We key on the themed icon name's base
-// token instead, falling back to the tooltip for pixmap-only icons.
+// hide/show choice across restarts and to group/collapse. The reliable source
+// is proxy.name (the app's declared name, e.g. "claude_status_icon_1",
+// "blueman", "megasync"); proxy.get_name() is just the shared D-Bus sender.
 function persistentKey(proxy) {
+    let exc = exceptionFor(proxy);
+    if (exc) return "exc:" + exc.base;                 // all matches share one key
+
+    let name = (proxy.name || "").trim().toLowerCase();
+    if (name) return name;
+
     let icon = (proxy.icon_name || "").trim();
     if (icon && icon !== " " && !icon.startsWith("/") && !icon.startsWith("xapp-tmp")) {
         return iconBase(icon);
@@ -70,9 +129,9 @@ function persistentKey(proxy) {
 }
 
 // Text used to decide whether an icon is a system indicator: its themed icon
-// name plus its identity key (e.g. "blueman-active-symbolic blueman").
+// name plus its declared name (e.g. "blueman-active-symbolic blueman").
 function classifyText(proxy) {
-    return ((proxy.icon_name || "") + " " + persistentKey(proxy)).toLowerCase();
+    return ((proxy.icon_name || "") + " " + (proxy.name || "")).toLowerCase();
 }
 
 // One rendered status icon. Owns its St actor and forwards input to the proxy.
@@ -80,7 +139,8 @@ class TrayIcon {
     constructor(applet, proxy) {
         this.applet = applet;
         this.proxy = proxy;
-        this.name = proxy.get_name();
+        this.name = proxy.name || proxy.get_name();
+        this.exception = exceptionFor(proxy);
         this.iconName = null;
 
         this.actor = new St.BoxLayout({
@@ -121,6 +181,9 @@ class TrayIcon {
         if ('TooltipText' in prop_names) this.setTooltipText(proxy.tooltip_text);
         if ('Label' in prop_names) this.setLabel(proxy.label);
         if ('Visible' in prop_names) this.setVisible(proxy.visible);
+        // Apps (notably Claude) often set their Name *after* registering — so
+        // re-evaluate the exception (icon + collapse) when the name lands.
+        if ('Name' in prop_names) this.applet.onProxyNameChanged(this);
     }
 
     refresh() {
@@ -144,6 +207,21 @@ class TrayIcon {
         // Uniform size so colourful app icons match the panel's other icons.
         this.iconSize = this.applet.trayIconSize();
         this.proxy.icon_size = this.iconSize;
+
+        // Per-app exception: draw our own themed icon (from exceptions/) instead
+        // of the app's broken one — e.g. Claude's "image-missing".
+        if (this.exception) {
+            let ep = this.applet.exceptionIconPath(this.exception.base);
+            if (ep) {
+                this.icon_loader_handle = St.TextureCache.get_default().load_image_from_file_async(
+                    ep,
+                    this.actor.vertical ? this.iconSize : -1,
+                    this.iconSize,
+                    (...args) => this._onImageLoaded(...args)
+                );
+                return;
+            }
+        }
 
         let name = (iconName || "").trim();
 
@@ -251,12 +329,25 @@ class TrayIcon {
         this._tooltip.hide();
         this._tooltip.preventShow = true;
 
+        // The drawer is non-modal, so we DON'T close it on click — it stays open
+        // until you click outside. App menus from drawer icons work because there
+        // is no popup grab to block them.
+        this._pressXYO = this.getEventPositionInfo(actor);
+
+        // Exception icons (e.g. Claude): the app's right-click menu works via
+        // forwarding, but it has no left-click action — so synthesise one
+        // (raise/show the app window). Right-click still forwards below.
+        if (this.exception && event.get_button() == Clutter.BUTTON_PRIMARY) {
+            this.applet.raiseApp(this.exception);
+            return Clutter.EVENT_STOP;
+        }
+
         if (event.get_button() == Clutter.BUTTON_SECONDARY &&
             event.get_state() & Clutter.ModifierType.CONTROL_MASK) {
             return Clutter.EVENT_PROPAGATE;
         }
 
-        let [x, y, o] = this.getEventPositionInfo(actor);
+        let [x, y, o] = this._pressXYO;
         this.proxy.call_button_press(x, y, event.get_button(), event.get_time(), o, null, null);
         return Clutter.EVENT_STOP;
     }
@@ -266,7 +357,12 @@ class TrayIcon {
             (event.get_state() & Clutter.ModifierType.CONTROL_MASK)) {
             return Clutter.EVENT_STOP;
         }
-        let [x, y, o] = this.getEventPositionInfo(actor);
+        // Left-click on an exception was fully handled on press (raise window).
+        if (this.exception && event.get_button() == Clutter.BUTTON_PRIMARY) {
+            return Clutter.EVENT_STOP;
+        }
+        // Reuse the press position (the icon may have moved when the drawer closed).
+        let [x, y, o] = this._pressXYO || this.getEventPositionInfo(actor);
         this.proxy.call_button_release(x, y, event.get_button(), event.get_time(), o, null, null);
         return Clutter.EVENT_STOP;
     }
@@ -303,6 +399,10 @@ class Tray11Applet extends Applet.Applet {
         this.orientation = orientation;
         this.setAllowedLayout(Applet.AllowedLayout.BOTH);
 
+        // Load per-app exceptions from exceptions/*.exeption before any icons
+        // arrive, so matching/collapse is in effect from the first icon.
+        loadExceptions(GLib.build_filenamev([metadata.path, "exceptions"]));
+
         this.actor.remove_style_class_name('applet-box');
         this.actor.set_important(true);
 
@@ -336,13 +436,14 @@ class Tray11Applet extends Applet.Applet {
         this.arrowBtn.connect('clicked', () => this.menu.toggle());
         this.actor.add_actor(this.arrowBtn);
 
-        // The drawer (a popup menu anchored to the applet).
-        this.menuManager = new PopupMenu.PopupMenuManager(this);
+        // The drawer: an applet popup that we deliberately DON'T register with a
+        // PopupMenuManager, so it carries no modal input grab. That keeps it open
+        // while you click icons inside it and lets those icons' apps pop their
+        // own menus. We dismiss it ourselves on a click outside (below).
         this.menu = new Applet.AppletPopupMenu(this, orientation);
-        this.menuManager.addMenu(this.menu);
         this.drawerBox = new St.BoxLayout({ style_class: "tray11-drawer", vertical: false });
         this.menu.box.add_actor(this.drawerBox);
-        this.menu.connect('open-state-changed', (m, open) => this._updateArrowIcon(open));
+        this.menu.connect('open-state-changed', (m, open) => this._onDrawerOpenState(open));
 
         // Right-click context menu: a live list of icons with hide/show toggles.
         this._ctxSection = new PopupMenu.PopupMenuSection();
@@ -351,6 +452,7 @@ class Tray11Applet extends Applet.Applet {
             (m, open) => { if (open) this._rebuildContextMenu(); });
 
         this.icons = {};                 // runtime key -> TrayIcon
+        this._collapsed = {};            // exception base -> runtime key currently shown
         this.signalManager = new SignalManager.SignalManager(null);
 
         this.monitor = new XApp.StatusIconMonitor();
@@ -386,8 +488,14 @@ class Tray11Applet extends Applet.Applet {
         if (this.icons[key]) return;
         if (this.shouldIgnore(proxy)) return;
 
+        // Collapse: for an exception with `collapse`, keep only the first icon
+        // (Claude registers a dead duplicate — show one, drop the rest).
+        let exc = exceptionFor(proxy);
+        if (exc && exc.collapse && this._collapsed[exc.base]) return;
+
         let icon = new TrayIcon(this, proxy);
         this.icons[key] = icon;
+        if (exc && exc.collapse) this._collapsed[exc.base] = key;
         this.place(icon);
         this._updateArrow();
     }
@@ -396,6 +504,10 @@ class Tray11Applet extends Applet.Applet {
         let key = this.runtimeKey(proxy);
         let icon = this.icons[key];
         if (!icon) return;
+        if (icon.exception && icon.exception.collapse &&
+            this._collapsed[icon.exception.base] === key) {
+            delete this._collapsed[icon.exception.base];
+        }
         icon.destroy();
         delete this.icons[key];
         this._updateArrow();
@@ -409,6 +521,36 @@ class Tray11Applet extends Applet.Applet {
             }
         }
         this._updateArrow();
+    }
+
+    // An icon's declared name changed (Claude names itself late). Re-evaluate
+    // its exception, re-render, and re-run collapse to drop late duplicates.
+    onProxyNameChanged(icon) {
+        let exc = exceptionFor(icon.proxy);
+        let changed = (exc !== icon.exception);
+        icon.exception = exc;
+        icon.name = icon.proxy.name || icon.name;
+        if (changed) icon.refresh();      // swap to/from the override icon
+        this._reapplyCollapse();
+        this._reorderStrips();
+        this._updateArrow();
+    }
+
+    // Keep only one icon per collapsing exception; drop the rest. Safe to call
+    // any time (rebuilds the _collapsed map from the current icon set).
+    _reapplyCollapse() {
+        this._collapsed = {};
+        for (let key of Object.keys(this.icons)) {
+            let ic = this.icons[key];
+            let exc = ic.exception;
+            if (!exc || !exc.collapse) continue;
+            if (this._collapsed[exc.base]) {
+                ic.destroy();
+                delete this.icons[key];   // a duplicate — remove it
+            } else {
+                this._collapsed[exc.base] = key;
+            }
+        }
     }
 
     // True unless the user has explicitly chosen to show this icon.
@@ -465,12 +607,20 @@ class Tray11Applet extends Applet.Applet {
 
     // A readable label for an icon (first line of its tooltip, tags stripped).
     iconLabel(icon) {
+        // Matched exceptions get a clean capitalised name (e.g. "Claude").
+        if (icon.exception) {
+            let b = icon.exception.base;
+            return b.charAt(0).toUpperCase() + b.slice(1);
+        }
         let t = icon.proxy.tooltip_text;
         if (t) {
             let clean = t.replace(/<[^>]+>/g, "").split("\n")[0].trim();
             if (clean) return clean;
         }
-        return icon.key();
+        // Last resort: the declared name, never a raw key prefix.
+        let n = (icon.proxy.name || "").trim();
+        if (n) return n;
+        return icon.key().replace(/^(tip:|path:|exc:)/, "");
     }
 
     // Rebuild the live hide/show toggle list shown in the right-click menu.
@@ -501,6 +651,33 @@ class Tray11Applet extends Applet.Applet {
         return this.iconSizePref || this.getPanelIconSize(St.IconType.FULLCOLOR);
     }
 
+    // Raise/focus an app's window by WM_CLASS — used to give exception icons a
+    // working left-click ("show the app") when the app itself ignores it.
+    // Uses Cinnamon's own window list, so no external tools are needed.
+    raiseApp(exc) {
+        if (!exc || !exc.wmclass) return;
+        let target = exc.wmclass.toLowerCase();
+        for (let a of global.get_window_actors()) {
+            let w = a.meta_window;
+            let cls = ((w.get_wm_class && w.get_wm_class()) || "").toLowerCase();
+            if (cls.indexOf(target) !== -1) {
+                w.activate(global.get_current_time());
+                return;
+            }
+        }
+    }
+
+    // Themed override icon for a matched exception (exceptions/Dark-<base>.png
+    // or Light-<base>.png), or null if the user hasn't supplied one.
+    exceptionIconPath(base) {
+        let pfx = this._dark ? "Dark-" : "Light-";
+        for (let ext of [".png", ".svg"]) {
+            let p = GLib.build_filenamev([this.metadata.path, "exceptions", pfx + base + ext]);
+            if (GLib.file_test(p, GLib.FileTest.EXISTS)) return p;
+        }
+        return null;
+    }
+
     // ---- arrow / drawer -------------------------------------------------------
 
     _updateArrow() {
@@ -510,9 +687,42 @@ class Tray11Applet extends Applet.Applet {
         this._updateArrowIcon(this.menu.isOpen);
     }
 
+    // Drawer opened/closed. Because it has no modal grab, we add/remove our own
+    // non-grabbing "click outside to dismiss" watcher.
+    _onDrawerOpenState(open) {
+        this._updateArrowIcon(open);
+        if (open) {
+            if (!this._outsideId)
+                this._outsideId = global.stage.connect('captured-event',
+                    (s, ev) => this._onCapturedEvent(ev));
+        } else if (this._outsideId) {
+            global.stage.disconnect(this._outsideId);
+            this._outsideId = 0;
+        }
+    }
+
+    _onCapturedEvent(ev) {
+        if (ev.type() !== Clutter.EventType.BUTTON_PRESS) return Clutter.EVENT_PROPAGATE;
+        let [x, y] = ev.get_coords();
+        // Keep the drawer open for clicks on it (its icons) or on the arrow.
+        if (!this._pointInActor(this.menu.actor, x, y) &&
+            !this._pointInActor(this.arrowBtn, x, y)) {
+            this.menu.close();
+        }
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _pointInActor(actor, x, y) {
+        if (!actor || !actor.visible) return false;
+        let [ax, ay] = actor.get_transformed_position();
+        let [aw, ah] = actor.get_transformed_size();
+        return x >= ax && x < ax + aw && y >= ay && y < ay + ah;
+    }
+
     _onThemeChanged() {
         this._dark = /dark/i.test(gtkThemeName());
         this._updateArrowIcon(this.menu.isOpen);
+        this.refreshIcons();   // re-pick themed exception icons (e.g. Claude)
     }
 
     _updateArrowIcon(open) {
@@ -551,6 +761,7 @@ class Tray11Applet extends Applet.Applet {
 
     on_applet_removed_from_panel() {
         this.signalManager.disconnectAllSignals();
+        if (this._outsideId) { global.stage.disconnect(this._outsideId); this._outsideId = 0; }
         for (let key in this.icons) { this.icons[key].destroy(); delete this.icons[key]; }
         this.monitor = null;
         if (this.settings) this.settings.finalize();

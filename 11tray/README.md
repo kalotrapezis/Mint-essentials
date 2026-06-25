@@ -41,14 +41,23 @@ It's theme-aware — the arrow and icons follow your light/dark theme:
 
 ## Choosing what shows
 
-Everything starts in the drawer. To put an icon on the panel:
+Everything starts in the drawer. The quickest way to rearrange:
+
+- **Ctrl+click any icon to move it between the panel and the drawer.** Ctrl+click
+  one on the panel to tuck it away; open the drawer and Ctrl+click one there to
+  bring it out. That's the whole workflow — no menus.
+
+Or, for a checklist view:
 
 - **Right-click the applet** for a per-icon switch list (switch *off* = shown on
   the panel). While the arrow is present you have a spot to right-click; if you've
   brought everything out and the arrow is gone, turn on **Panel edit mode**
   (right-click the panel → Troubleshoot → Panel edit mode) to get one, then turn
   it off when done.
-- **Ctrl+click** any icon to move it in or out of the drawer directly.
+
+The drawer stays open while you click around in it, and each icon keeps its own
+left/right-click actions (the app's menu, etc.) — so you can use apps straight
+from the drawer without pulling them out first.
 
 ![hide/show menu](Screenshots/hide-menu.png)
 

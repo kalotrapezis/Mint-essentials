@@ -1,0 +1,7 @@
+{
+    "_comment": "Claude desktop (Linux) reports its tray icon as 'image-missing' after a 2026 update and sometimes registers twice. Draw our own logo and keep one. Right-click forwards to Claude's real menu (Show App / Quit); Claude ignores left-click, so we synthesise it via the window class.",
+    "match": "claude",
+    "base": "claude",
+    "collapse": true,
+    "wmclass": "claude"
+}
