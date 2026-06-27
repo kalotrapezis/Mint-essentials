@@ -5,7 +5,7 @@ don't want to see behind a small arrow — a drawer, like Windows 11. The choice
 is per-app and remembered, so the tray stays tidy as you install more apps. On a
 fresh install every icon starts tucked away, and you pick which ones to show.
 
-![11tray with the drawer open](Screenshots/tray-open.png)
+![11tray with the drawer open](Screenshots/tray-default.png)
 
 11tray **replaces** the stock XApp status applet and renders the icons itself, so
 it can split them into a visible strip and a hidden drawer.
@@ -84,15 +84,17 @@ Cinnamon (Alt+F2 → `r` → Enter).
 ## Settings
 
 Open the applet's settings (the gear in the Applets list) to set the **tray icon
-size**. The hide/show list is in the right-click menu (see above), since it has
-to reflect your live icons.
+size** and the **icons per row** in the drawer. The hide/show list is in the
+right-click menu (see above), since it has to reflect your live icons.
 
 ## Status
 
-Working today: hosting and rendering icons, the hide drawer, per-app persistence,
-system grouping, and configurable size. **Drag-and-drop** to move icons between
-the strip and the drawer is the next planned step — for now use Ctrl+click or the
-right-click switches. See [plan.md](plan.md) for the roadmap.
+Working today: hosting and rendering icons, the grid drawer with a theme-accent
+border, per-app persistence, system grouping, per-app exceptions, and
+configurable size/row width. **Drag-and-drop** to move icons between the strip
+and the drawer is the next planned step — for now use Ctrl+click or the
+right-click switches. See [plan.md](plan.md) for the roadmap and
+[CHANGELOG.md](11tray@kalotrapezis/CHANGELOG.md) for release history.
 
 ## Requirements
 

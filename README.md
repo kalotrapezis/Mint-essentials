@@ -22,7 +22,7 @@ arrow, in a drawer. Everything starts hidden and you pick what shows; the choice
 is per-app and remembered, so the tray stays tidy as you install more apps.
 System icons (update manager, Bluetooth…) are grouped together automatically.
 
-![11tray with the drawer open](11tray/Screenshots/tray-open.png)
+![11tray with the drawer open](11tray/Screenshots/tray-default.png)
 
 See the [11tray README](11tray/README.md).
 

@@ -13,6 +13,15 @@
         "description": "Tray icon size",
         "tooltip": "Size of the tray icons, in pixels. Lower this to match the panel's system icons."
     },
+    "icons-per-row": {
+        "type": "spinbutton",
+        "default": 5,
+        "min": 2,
+        "max": 10,
+        "step": 1,
+        "description": "Drawer icons per row",
+        "tooltip": "How many icons the drawer shows per row before wrapping to a new row."
+    },
     "head-hiding": {
         "type": "header",
         "description": "Hiding"
