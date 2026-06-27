@@ -56,12 +56,21 @@ Or, for a checklist view:
   it off when done.
 
 **Left-click works in the drawer** — it activates the app and the drawer stays
-open. **Right-click does not show the app's own menu while it's in the drawer.**
-That's an Xorg trade-off: to be clickable on top of other windows the drawer
-needs a pointer grab, and that same grab stops the app's right-click menu from
-appearing (the menu needs the grab itself). So a right-click in the drawer just
-closes it. To use an icon's right-click menu, bring it onto the panel first
-(Ctrl+click) — on the panel there's no grab and the app's menu works normally.
+open.
+
+**Right-click works too** — the app's own menu pops up:
+
+![an app's right-click menu from the drawer](Screenshots/tryRightClick.png)
+
+There's a small bit of stagecraft behind it. On Xorg, the drawer needs a pointer
+grab to be clickable on top of other windows, and that same grab stops an app's
+menu from opening while the icon sits inside the drawer. So on right-click 11tray
+**briefly pops the icon onto the panel**, lets the app show its menu there, and
+**slides it back into the drawer** once the menu closes. (A "stay-open, no-move"
+version would need a full-screen input layer, which steals focus and breaks app
+keyboard shortcuts — so the quick pop-out is the better trade.)
+
+The per-icon switch list (right-click the applet) is the other way to manage them:
 
 ![hide/show menu](Screenshots/hide-menu.png)
 
