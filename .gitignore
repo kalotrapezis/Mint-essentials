@@ -13,3 +13,7 @@
 # Local tooling / scratch
 .claude/
 todo/
+
+# build artifacts
+*.deb
+__pycache__/
